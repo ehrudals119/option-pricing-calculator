@@ -7,9 +7,8 @@ function App() {
       <Header/>
       <div className="container">
         <div className="form">
-        <OptionForm/>
+          <OptionForm/>
         </div>
-      
       </div>
     </>
   ) 

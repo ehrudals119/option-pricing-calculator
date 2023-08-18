@@ -29,6 +29,16 @@ export function TabGroup({ onActiveChange }) {
     onActiveChange(type);
   };
 
+  const getSummary = (type) => {
+    if (type === 'Call') {
+      return 'Buy a Call option when you expect the underlying asset price to rise.';
+    } else if (type === 'Put') {
+      return 'Buy a Put option when you expect the underlying asset price to fall.';
+    } else {
+      return '';
+    }
+  };
+
   return (
     <>
       <ButtonGroup>
@@ -43,7 +53,7 @@ export function TabGroup({ onActiveChange }) {
         ))}
       </ButtonGroup>
       <p />
-      <p> Selected option type: {active} </p>
+      <p>{getSummary(active)}</p>
     </>
   );
 }
