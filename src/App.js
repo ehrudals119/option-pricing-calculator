@@ -1,5 +1,6 @@
 import Header from './components/Header'
 import OptionForm from './components/OptionForm'
+import FAQ from './components/faq'
 
 function App() {
   return (
@@ -7,9 +8,10 @@ function App() {
       <Header/>
       <div className="container">
         <div className="form">
-        <OptionForm/>
+          <OptionForm/>
         </div>
-      
+        <br></br>
+        <FAQ />
       </div>
     </>
   ) 

@@ -1,44 +1,26 @@
-import {cdf} from './NormalDistribution'
+import { cdf } from './NormalDistribution';
 
-export const calculation = (currentPrice, strikePrice, timeToExp, isPut) => {
+const INTEREST_RATE = 0.03;
+const DAYS_IN_YEAR = 365;
+const CONSTANT_POW = Math.pow(0.40, 2) / 2;
 
-    const volatility = 0.4
-    const interestRate = 0.01
-    const timeToExpinYears = timeToExp/365
+export const calculation = (currentPrice, strikePrice, timeToExp, isPut, volatility) => {
+    const timeToExpInYears = timeToExp / DAYS_IN_YEAR;
+    const d1 = calculateDOne(currentPrice, strikePrice, timeToExpInYears, volatility);
+    const d2 = calculateDTwo(d1, volatility, timeToExpInYears);
 
-    let premium = 0
+    const Nd1 = cdf(isPut ? -d1 : d1);
+    const Nd2 = cdf(isPut ? -d2 : d2);
 
-    const d1 = dOne(currentPrice, strikePrice, timeToExpinYears, volatility, interestRate);
+    return isPut 
+        ? Nd2 * strikePrice * Math.exp(-INTEREST_RATE * timeToExpInYears) - Nd1 * currentPrice 
+        : Nd1 * currentPrice - Nd2 * strikePrice * Math.exp(-INTEREST_RATE * timeToExpInYears);
+};
 
-    const d2 = dTwo(d1, volatility, timeToExpinYears);
+const calculateDOne = (currentPrice, strikePrice, timeToExp, volatility) => {
+    return (Math.log(currentPrice / strikePrice) + (INTEREST_RATE + CONSTANT_POW) * timeToExp) / (volatility * Math.sqrt(timeToExp));
+};
 
-    if(isPut){
-        const Nd1 = cdf(d1 * -1);
-
-        const Nd2 = cdf(d2 * -1);
-
-        premium =  Nd2 * strikePrice * Math.pow(Math.E, -1 * interestRate * timeToExpinYears) - Nd1 * currentPrice
-    }
-
-    else{
-        const Nd1 = cdf(d1);
-
-        const Nd2 = cdf(d2);
-
-        premium = Nd1 * currentPrice - Nd2 * strikePrice * Math.pow(Math.E, -1 * interestRate * timeToExpinYears)
-    }
-
-    return premium
-}
-
-const dOne = (currentPrice, strikePrice, timeToExp, volatility, interestRate) => {
-    let d1 = (Math.log(currentPrice/strikePrice) + (interestRate + (Math.pow(0.40,2)/2)) * (timeToExp)) / (volatility * Math.pow(timeToExp,0.5));
-
-    return d1;
-}
-
-const dTwo = (d1, volatility, timeToExp) => {
-    let d2 = d1 - volatility * Math.pow((timeToExp),0.5);
-
-    return d2;
-}
+const calculateDTwo = (d1, volatility, timeToExp) => {
+    return d1 - volatility * Math.sqrt(timeToExp);
+};

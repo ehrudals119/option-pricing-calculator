@@ -4,7 +4,6 @@ import PropTypes from 'prop-types'
 function OptionCurrentPrice({text}) {
 
   const [currentPrice, setCurrentPrice] = useState('')
-  
 
   const handleCurrentPriceChange = (e) => {
      setCurrentPrice(e.target.value)
