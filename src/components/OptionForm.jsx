@@ -3,15 +3,21 @@ import Button from './shared/Button';
 import { calculation } from './Calculation';
 import { TabGroup } from './OptionTabs';
 
+const BASE_URL_VOL = "http://localhost:5000/volatility?ticker=";
+const BASE_URL_PRICE = "http://localhost:5000/price?ticker=";
+
+const CONTRACT_MULTIPLIER = 100;
+
 function OptionForm() {
   // State variables
-  const [optionType, setOptionType] = useState('call');
+  const [optionType, setOptionType] = useState('Call');
   const [stockSymbol, setStockSymbol] = useState('');
   const [currentPrice, setCurrentPrice] = useState('');
   const [strikePrice, setStrikePrice] = useState('');
   const [timeToExp, setTimeToExp] = useState('');
   const [contracts, setContracts] = useState(1);
   const [volatility, setVolatility] = useState(10);
+  const [explanation, setExplanation] = useState('');
 
   const [useUserInputVol, setUseUserInputVol] = useState(false);
 
@@ -31,67 +37,83 @@ function OptionForm() {
     setOptionType(activeType);
   };
 
-  const baseurl_vol = "http://localhost:5000/volatility?ticker=";
-
-  const baseurl_price = "http://localhost:5000/price?ticker=";
-
-  const getCurrentPrice = (e) => {
+  const getCurrentPrice = async e => {
     e.preventDefault();
-
-    const url = baseurl_price + stockSymbol;
-      fetch(url)
-        .then(response => {
-          if (!response.ok) throw new Error('Network response was not ok');
-          return response.json();
-        })
-        .then(data => {
-          setCurrentPrice(data.previousClose);
-        })
-        .catch(error => {
-          console.log(error);
-        });
-    }
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-  
-    if (useUserInputVol) {
-      const premium = calculation(
-        currentPriceRef.current.value,
-        strikePriceRef.current.value,
-        timeToExpRef.current.value,
-        optionType === 'Put',
-        volatility / 100
-      ) * contractsRef.current.value * 100;
-  
-      resultRef.current.innerText = "$" + (Math.round(premium * 100) / 100);
-    } else {
-      const url = baseurl_vol + stockSymbol;
-      fetch(url)
-        .then(response => {
-          if (!response.ok) throw new Error('Network response was not ok');
-          return response.json();
-        })
-        .then(data => {
-          setVolatility(data.dailyVolatility);
-          
-          const premium = calculation(
-            currentPriceRef.current.value,
-            strikePriceRef.current.value,
-            timeToExpRef.current.value,
-            optionType === 'Put',
-            data.dailyVolatility / 100
-          ) * contractsRef.current.value * 100;
-  
-          resultRef.current.innerText = "$" + (Math.round(premium * 100) / 100);
-        })
-        .catch(error => {
-          console.log(error);
-          setVolatility(10);
-        });
+    const url = BASE_URL_PRICE + stockSymbol;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Network response was not ok');
+      const data = await response.json();
+      setCurrentPrice((Math.round(data.previousClose * 100) / 100));
+    } catch (error) {
+      console.log(error);
     }
   };
-  
+
+  const handleSubmit = async e => {
+    e.preventDefault();
+
+    let usedVolatility = useUserInputVol ? volatility : 10;
+
+    if (!useUserInputVol) {
+      const url = BASE_URL_VOL + stockSymbol;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+        usedVolatility = data.dailyVolatility;
+        setVolatility(data.dailyVolatility);
+      } catch (error) {
+        console.log(error);
+        setVolatility(10);
+      }
+    }
+
+    const premium = calculation(
+      currentPrice,
+      strikePrice,
+      timeToExp,
+      optionType === 'Put',
+      usedVolatility / 100
+    ) * contracts * CONTRACT_MULTIPLIER;
+
+    resultRef.current.innerText = "$" + (Math.round(premium * CONTRACT_MULTIPLIER) / 100);
+
+    setExplanation(summarize)
+  };
+
+  const summarize = () => {
+
+    let date = new Date();
+
+    date.setDate(date.getDate() + timeToExp);
+
+    const baseStr = "Your current position gives you the right to "
+
+    const infoStr = `${optionType == "Call" ? "buy" : "sell"} ${contracts * CONTRACT_MULTIPLIER} shares of `
+
+    const stockStr = `${stockSymbol} stock at $${strikePrice} on ${getExpiryDate(timeToExp)}`;
+
+    return baseStr + infoStr + stockStr;
+  }
+
+  const getExpiryDate = (days) =>{
+
+      let today = new Date(Date.UTC(
+        new Date().getUTCFullYear(),
+        new Date().getUTCMonth(),
+        new Date().getUTCDate()
+      ));
+
+      today.setUTCDate(today.getUTCDate() + 1);
+
+      let formattedDate = (today.getUTCMonth() + 1).toString().padStart(2, '0') + '/' +
+                        today.getUTCDate().toString().padStart(2, '0') + '/' +
+                        today.getUTCFullYear();
+
+
+    return formattedDate;
+  }
 
   return (
     <>
@@ -149,7 +171,7 @@ function OptionForm() {
                   ref={contractsRef}
                   value={contracts}
                 />
-                <>  X100</>
+                <>  X {CONTRACT_MULTIPLIER}</>
               </span>
             </div>
             <div className="input-group">
@@ -174,8 +196,9 @@ function OptionForm() {
             </Button>
           </form>
         </div>
-
-        <div className="input-group split-right">
+        
+        <div className="split-right">
+        <div className="output-group">
         <p class="bold-text">Your current position:</p>
           <span>
               <p class="bold-text" ref={resultRef}>$</p>
@@ -193,9 +216,12 @@ function OptionForm() {
                   : (currentPrice < strikePrice ? 'In the Money' : 'Out of the Money')
               }
           </p>
-          <span>
-          </span>
+          </div>
+        <div className="output-group">
+          <p class="bold-text">Explanation:</p>
+          <p>{explanation === ''? '' : explanation}</p>
         </div>
+      </div>
       </div>
     </>
   );

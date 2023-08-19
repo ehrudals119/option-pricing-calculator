@@ -131,6 +131,16 @@ header {
   border-radius: 8px;
 }
 
+.output-group {
+  width: 120%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #ccc;
+  padding: 12px 10px;
+  border-radius: 8px;
+  margin: 10px 0px 0px 0px;
+}
+
 
 .input-symbol {
   width: 50%;
