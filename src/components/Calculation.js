@@ -1,6 +1,6 @@
 import { cdf } from './NormalDistribution';
 
-const INTEREST_RATE = 0.01;
+const INTEREST_RATE = 0.03;
 const DAYS_IN_YEAR = 365;
 const CONSTANT_POW = Math.pow(0.40, 2) / 2;
 

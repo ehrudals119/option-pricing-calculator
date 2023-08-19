@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Button from './shared/Button';
-import OptionStockSymbol from './variables/OptionStockSymbol';
 import { calculation } from './Calculation';
 import { TabGroup } from './OptionTabs';
 
@@ -13,6 +12,8 @@ function OptionForm() {
   const [timeToExp, setTimeToExp] = useState('');
   const [contracts, setContracts] = useState(1);
   const [volatility, setVolatility] = useState(10);
+
+  const [useUserInputVol, setUseUserInputVol] = useState(false);
 
   // Refs
   const currentPriceRef = useRef();
@@ -32,31 +33,65 @@ function OptionForm() {
 
   const baseurl_vol = "http://localhost:5000/volatility?ticker=";
 
-  const handleSubmit = (e) => {
+  const baseurl_price = "http://localhost:5000/price?ticker=";
+
+  const getCurrentPrice = (e) => {
     e.preventDefault();
 
-    const url = baseurl_vol + stockSymbol;
-    fetch(url)
-      .then(response => {
-        if (!response.ok) throw new Error('Network response was not ok');
-        return response.json();
-      })
-      .then(data => setVolatility(data.dailyVolatility))
-      .catch(error => {
-        console.log(error);
-        setVolatility(10);
-      });
+    const url = baseurl_price + stockSymbol;
+      fetch(url)
+        .then(response => {
+          if (!response.ok) throw new Error('Network response was not ok');
+          return response.json();
+        })
+        .then(data => {
+          setCurrentPrice(data.previousClose);
+        })
+        .catch(error => {
+          console.log(error);
+        });
+    }
 
-    const premium = calculation(
-      currentPriceRef.current.value,
-      strikePriceRef.current.value,
-      timeToExpRef.current.value,
-      optionType === 'Put',
-      volatility / 100
-    ) * contractsRef.current.value * 100;
-
-    resultRef.current.innerText = "$" + (Math.round(premium * 100) / 100);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+  
+    if (useUserInputVol) {
+      const premium = calculation(
+        currentPriceRef.current.value,
+        strikePriceRef.current.value,
+        timeToExpRef.current.value,
+        optionType === 'Put',
+        volatility / 100
+      ) * contractsRef.current.value * 100;
+  
+      resultRef.current.innerText = "$" + (Math.round(premium * 100) / 100);
+    } else {
+      const url = baseurl_vol + stockSymbol;
+      fetch(url)
+        .then(response => {
+          if (!response.ok) throw new Error('Network response was not ok');
+          return response.json();
+        })
+        .then(data => {
+          setVolatility(data.dailyVolatility);
+          
+          const premium = calculation(
+            currentPriceRef.current.value,
+            strikePriceRef.current.value,
+            timeToExpRef.current.value,
+            optionType === 'Put',
+            data.dailyVolatility / 100
+          ) * contractsRef.current.value * 100;
+  
+          resultRef.current.innerText = "$" + (Math.round(premium * 100) / 100);
+        })
+        .catch(error => {
+          console.log(error);
+          setVolatility(10);
+        });
+    }
   };
+  
 
   return (
     <>
@@ -64,14 +99,22 @@ function OptionForm() {
       <div className='split'>
         <div className='split-left'>
           <h2>Underlying Stock</h2>
-          <div className="input-group">
-            <label>Stock Symbol</label>
-            <input
-              onChange={handleInputChange(setStockSymbol)}
-              type="text"
-              value={stockSymbol}
-            />
-          </div>
+          <form onSubmit={getCurrentPrice}>
+            <div className="input-group">
+              <span>
+              <label>Stock Symbol</label>
+              <Button type='submit' version='getprice'>
+                Get Price
+              </Button>
+              </span>
+              <input
+                onChange={handleInputChange(setStockSymbol)}
+                type="text"
+                value={stockSymbol}
+              />
+            </div>
+          </form>
+
           <form onSubmit={handleSubmit}>
             <div className="input-group">
               <label>Current Price</label>
@@ -79,10 +122,9 @@ function OptionForm() {
                 onChange={handleInputChange(setCurrentPrice)}
                 type="number"
                 ref={currentPriceRef}
-                value={currentPrice || ''}
+                value={currentPrice}
               />
             </div>
-
             <h2>Option</h2>
             <div className="input-group">
               <label>Strike Price</label>
@@ -110,6 +152,23 @@ function OptionForm() {
                 <>  X100</>
               </span>
             </div>
+            <div className="input-group">
+              <span>
+              <label>Use custom volatility</label>
+              <input type="checkbox" checked={useUserInputVol} onChange={() => setUseUserInputVol(!useUserInputVol)} />
+              </span>
+              {useUserInputVol && (
+                <>
+                  <label>Volatility (%)</label>
+                  <input
+                    onChange={handleInputChange(setVolatility)}
+                    type="number"
+                    ref={volatilityRef}
+                    value={volatility}
+                  />
+                </>
+              )}
+            </div>
             <Button type='submit' version='secondary'>
               Calculate!
             </Button>
@@ -117,14 +176,23 @@ function OptionForm() {
         </div>
 
         <div className="input-group split-right">
-          <p>Current Position</p>
+        <p class="bold-text">Your current position:</p>
           <span>
-            <p ref={resultRef}>$</p>
+              <p class="bold-text" ref={resultRef}>$</p>
           </span>
-          <p>Volatility</p>
+          <br></br>
+          <p>Volatility:</p>
           <span>
             <p>{(Math.round(volatility * 100) / 100) + "%"}</p>
           </span>
+          <br></br>
+          <p>Your position is:</p>
+          <p>
+              {optionType === 'Call' 
+                  ? (currentPrice > strikePrice ? 'In the Money' : 'Out of the Money')
+                  : (currentPrice < strikePrice ? 'In the Money' : 'Out of the Money')
+              }
+          </p>
           <span>
           </span>
         </div>
