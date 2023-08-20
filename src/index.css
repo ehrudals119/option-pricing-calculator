@@ -1,5 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
 
+.alert {
+  position: fixed;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #f44336; 
+  color: white; 
+  padding: 16px;
+  z-index: 1000;
+  border-radius: 8px; 
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+  transition: opacity 0.5s;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -138,7 +151,7 @@ header {
   border: 1px solid #ccc;
   padding: 12px 10px;
   border-radius: 8px;
-  margin: 10px 0px 0px 0px;
+  margin: 35px -20px 0px -75px;
 }
 
 

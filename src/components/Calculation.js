@@ -2,7 +2,6 @@ import { cdf } from './NormalDistribution';
 
 const INTEREST_RATE = 0.03;
 const DAYS_IN_YEAR = 365;
-const CONSTANT_POW = Math.pow(0.40, 2) / 2;
 
 export const calculation = (currentPrice, strikePrice, timeToExp, isPut, volatility) => {
     const timeToExpInYears = timeToExp / DAYS_IN_YEAR;
@@ -18,7 +17,7 @@ export const calculation = (currentPrice, strikePrice, timeToExp, isPut, volatil
 };
 
 const calculateDOne = (currentPrice, strikePrice, timeToExp, volatility) => {
-    return (Math.log(currentPrice / strikePrice) + (INTEREST_RATE + CONSTANT_POW) * timeToExp) / (volatility * Math.sqrt(timeToExp));
+    return (Math.log(currentPrice / strikePrice) + (INTEREST_RATE + (Math.pow(volatility, 2) / 2)) * timeToExp) / (volatility * Math.sqrt(timeToExp));
 };
 
 const calculateDTwo = (d1, volatility, timeToExp) => {

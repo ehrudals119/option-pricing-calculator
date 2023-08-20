@@ -31,9 +31,9 @@ export function TabGroup({ onActiveChange }) {
 
   const getSummary = (type) => {
     if (type === 'Call') {
-      return 'Buy a Call option when you expect the underlying asset price to rise.';
+      return 'Buy a Call option when you expect the underlying stock price to rise.';
     } else if (type === 'Put') {
-      return 'Buy a Put option when you expect the underlying asset price to fall.';
+      return 'Buy a Put option when you expect the underlying stock price to fall.';
     } else {
       return '';
     }

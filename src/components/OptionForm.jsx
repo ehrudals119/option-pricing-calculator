@@ -1,10 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import Button from './shared/Button';
 import { calculation } from './Calculation';
 import { TabGroup } from './OptionTabs';
 
-const BASE_URL_VOL = "http://localhost:5000/volatility?ticker=";
-const BASE_URL_PRICE = "http://localhost:5000/price?ticker=";
+const BASE_URL_VOL = "http://localhost:4000/volatility?ticker=";
+const BASE_URL_PRICE = "http://localhost:4000/price?ticker=";
 
 const CONTRACT_MULTIPLIER = 100;
 
@@ -14,12 +14,13 @@ function OptionForm() {
   const [stockSymbol, setStockSymbol] = useState('');
   const [currentPrice, setCurrentPrice] = useState('');
   const [strikePrice, setStrikePrice] = useState('');
-  const [timeToExp, setTimeToExp] = useState('');
+  const [timeToExp, setTimeToExp] = useState(1);
   const [contracts, setContracts] = useState(1);
   const [volatility, setVolatility] = useState(10);
   const [explanation, setExplanation] = useState('');
 
   const [useUserInputVol, setUseUserInputVol] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
 
   // Refs
   const currentPriceRef = useRef();
@@ -53,6 +54,14 @@ function OptionForm() {
   const handleSubmit = async e => {
     e.preventDefault();
 
+
+    if (timeToExp < 7) {
+      setShowAlert(true);
+      setTimeout(() => {
+        setShowAlert(false);
+      }, 2000);
+    }
+
     let usedVolatility = useUserInputVol ? volatility : 10;
 
     if (!useUserInputVol) {
@@ -79,44 +88,25 @@ function OptionForm() {
 
     resultRef.current.innerText = "$" + (Math.round(premium * CONTRACT_MULTIPLIER) / 100);
 
-    setExplanation(summarize)
+    setExplanation(summarize(Number(timeToExpRef.current.value)));
   };
 
-  const summarize = () => {
-
-    let date = new Date();
-
-    date.setDate(date.getDate() + timeToExp);
-
-    const baseStr = "Your current position gives you the right to "
-
-    const infoStr = `${optionType == "Call" ? "buy" : "sell"} ${contracts * CONTRACT_MULTIPLIER} shares of `
-
-    const stockStr = `${stockSymbol} stock at $${strikePrice} on ${getExpiryDate(timeToExp)}`;
-
+  const summarize = (expiryDays) => {
+    const baseStr = "Your current position gives you the right to ";
+    const infoStr = `${optionType === "Call" ? "buy" : "sell"} ${contracts * CONTRACT_MULTIPLIER} shares of `;
+    const stockStr = `${stockSymbol} stock at $${strikePrice} on ${getExpiryDate(expiryDays)}`;
     return baseStr + infoStr + stockStr;
-  }
+}
 
-  const getExpiryDate = (days) =>{
-
-      let today = new Date(Date.UTC(
-        new Date().getUTCFullYear(),
-        new Date().getUTCMonth(),
-        new Date().getUTCDate()
-      ));
-
-      today.setUTCDate(today.getUTCDate() + 1);
-
-      let formattedDate = (today.getUTCMonth() + 1).toString().padStart(2, '0') + '/' +
-                        today.getUTCDate().toString().padStart(2, '0') + '/' +
-                        today.getUTCFullYear();
-
-
-    return formattedDate;
-  }
+  const getExpiryDate = (days) => {
+    var today = new Date();
+    today.setDate(today.getDate() + days);
+    return today.toDateString(); 
+}
 
   return (
     <>
+      {showAlert && <div className="alert">Time to expiry is less than 7 days!</div>}
       <TabGroup onActiveChange={handleActiveChange} />
       <div className='split'>
         <div className='split-left'>
@@ -204,12 +194,12 @@ function OptionForm() {
               <p class="bold-text" ref={resultRef}>$</p>
           </span>
           <br></br>
-          <p>Volatility:</p>
+          <p>Implied Volatility:</p>
           <span>
             <p>{(Math.round(volatility * 100) / 100) + "%"}</p>
           </span>
           <br></br>
-          <p>Your position is:</p>
+          <p>Your position is currently:</p>
           <p>
               {optionType === 'Call' 
                   ? (currentPrice > strikePrice ? 'In the Money' : 'Out of the Money')
@@ -218,8 +208,8 @@ function OptionForm() {
           </p>
           </div>
         <div className="output-group">
-          <p class="bold-text">Explanation:</p>
-          <p>{explanation === ''? '' : explanation}</p>
+          <p class="bold-text">Breakdown:</p>
+          <p>{explanation === '' ? '' : explanation}</p>
         </div>
       </div>
       </div>
