@@ -19,7 +19,7 @@ const Tab = styled.button`
 const ButtonGroup = styled.div`
   display: flex;
 `;
-const types = ['Call', 'Put'];
+const types = ['Call', 'Put', 'Call Spread', 'Put Spread'];
 
 export function TabGroup({ onActiveChange }) {
   const [active, setActive] = useState(types[0]);
@@ -34,9 +34,15 @@ export function TabGroup({ onActiveChange }) {
       return 'Buy a Call option when you expect the underlying stock price to rise.';
     } else if (type === 'Put') {
       return 'Buy a Put option when you expect the underlying stock price to fall.';
-    } else {
+    } else if (type === 'Call Spread'){
+      return 'Buy a call spread when you expect the underlying stock to fall or rise moderately. Purchasing a call with a lower strike price than the written call (short) provides a bullish strategy, and purchasing a call with a higher strike price than the written call provides a bearish strategy.';
+    } else if (type === 'Put Spread'){
+      return 'Buy a call spread when you expect the underlying stock to fall or rise moderately. Purchasing a put with a lower strike price than the written put (short) provides a bearish strategy, and purchasing a put with a higher strike price than the written put provides a bearish strategy.'
+    }
+    else{
       return '';
     }
+
   };
 
   return (

@@ -3,6 +3,9 @@ import Button from './shared/Button';
 import { calculation } from './Calculation';
 import { TabGroup } from './OptionTabs';
 
+import BasicInputs from './BasicInput'
+import SpreadInputs from './SpreadInput';
+
 const BASE_URL_VOL = "http://localhost:4000/volatility?ticker=";
 const BASE_URL_PRICE = "http://localhost:4000/price?ticker=";
 
@@ -13,7 +16,7 @@ function OptionForm() {
   const [optionType, setOptionType] = useState('Call');
   const [stockSymbol, setStockSymbol] = useState('');
   const [currentPrice, setCurrentPrice] = useState('');
-  const [strikePrice, setStrikePrice] = useState('');
+  const [strikePrices, setStrikePrices] = useState(['', '']);
   const [timeToExp, setTimeToExp] = useState(1);
   const [contracts, setContracts] = useState(1);
   const [volatility, setVolatility] = useState(10);
@@ -30,8 +33,32 @@ function OptionForm() {
   const volatilityRef = useRef();
   const resultRef = useRef();
 
-  const handleInputChange = (setter) => (e) => {
-    setter(e.target.value);
+  const handleInputChange = (name, index) => (e) => {
+    const value = e.target.value;
+    switch (name) {
+      case 'stockSymbol':
+        setStockSymbol(value);
+        break;
+      case 'currentPrice':
+        setCurrentPrice(value);
+        break;
+      case 'strikePrice':
+        const updatedStrikePrices = [...strikePrices];
+        updatedStrikePrices[index] = value;
+        setStrikePrices(updatedStrikePrices);
+        break;
+      case 'timeToExp':
+        setTimeToExp(value);
+        break;
+      case 'contracts':
+        setContracts(value);
+        break;
+      case 'volatility':
+        setVolatility(value);
+        break;
+      default:
+        break;
+    }
   };
 
   const handleActiveChange = (activeType) => {
@@ -53,7 +80,6 @@ function OptionForm() {
 
   const handleSubmit = async e => {
     e.preventDefault();
-
 
     if (timeToExp < 7) {
       setShowAlert(true);
@@ -78,25 +104,58 @@ function OptionForm() {
       }
     }
 
-    const premium = calculation(
-      currentPrice,
-      strikePrice,
-      timeToExp,
-      optionType === 'Put',
-      usedVolatility / 100
-    ) * contracts * CONTRACT_MULTIPLIER;
+    if(optionType === 'Call' || optionType === 'Put'){
+      const premium = calculation(
+        currentPrice,
+        strikePrices[0],
+        timeToExp,
+        optionType === 'Put',
+        usedVolatility / 100
+      ) * contracts * CONTRACT_MULTIPLIER;
+  
+      resultRef.current.innerText = "$" + (Math.round(premium * CONTRACT_MULTIPLIER) / 100);
+    }
 
-    resultRef.current.innerText = "$" + (Math.round(premium * CONTRACT_MULTIPLIER) / 100);
+    else{
 
+      const longPrem = calculation(
+        currentPrice,
+        strikePrices[0],
+        timeToExp,
+        optionType === 'Put Spread' ? true : false,
+        usedVolatility / 100
+      ) * contracts * CONTRACT_MULTIPLIER;
+
+      const shortPrem = calculation(
+        currentPrice,
+        strikePrices[1],
+        timeToExp,
+        optionType === 'Put Spread' ? true : false,
+        usedVolatility / 100
+      ) * contracts * CONTRACT_MULTIPLIER;
+
+      console.log(longPrem);
+      console.log(shortPrem);
+
+      const prem = longPrem - shortPrem;
+  
+      resultRef.current.innerText = "$" + (Math.round(prem * CONTRACT_MULTIPLIER) / 100);
+      
+    }
     setExplanation(summarize(Number(timeToExpRef.current.value)));
   };
 
-  const summarize = (expiryDays) => {
-    const baseStr = "Your current position gives you the right to ";
-    const infoStr = `${optionType === "Call" ? "buy" : "sell"} ${contracts * CONTRACT_MULTIPLIER} shares of `;
-    const stockStr = `${stockSymbol} stock at $${strikePrice} on ${getExpiryDate(expiryDays)}`;
-    return baseStr + infoStr + stockStr;
-}
+const summarize = (expiryDays) => {
+  const baseStr = "Your current position gives you the right to ";
+  let infoStr;
+  if (optionType === "Call Spread" || optionType === "Put Spread") {
+    infoStr = `${optionType === "Call Spread" ? "buy" : "sell"} ${contracts * CONTRACT_MULTIPLIER} shares of ${stockSymbol} stock at $${strikePrices[0]} and `;
+    infoStr += `${optionType === "Call Spread" ? "sell" : "buy"} ${contracts * CONTRACT_MULTIPLIER} shares of ${stockSymbol} stock at $${strikePrices[1]} on ${getExpiryDate(expiryDays)}`;
+  } else {
+    infoStr = `${optionType === "Call" ? "buy" : "sell"} ${contracts * CONTRACT_MULTIPLIER} shares of ${stockSymbol} stock at $${strikePrices[0]} on ${getExpiryDate(expiryDays)}`;
+  }
+  return baseStr + infoStr;
+};
 
   const getExpiryDate = (days) => {
     var today = new Date();
@@ -120,7 +179,7 @@ function OptionForm() {
               </Button>
               </span>
               <input
-                onChange={handleInputChange(setStockSymbol)}
+                onChange={handleInputChange('stockSymbol')}
                 type="text"
                 value={stockSymbol}
               />
@@ -131,39 +190,35 @@ function OptionForm() {
             <div className="input-group">
               <label>Current Price</label>
               <input
-                onChange={handleInputChange(setCurrentPrice)}
+                onChange={handleInputChange('currentPrice')}
                 type="number"
                 ref={currentPriceRef}
                 value={currentPrice}
               />
             </div>
-            <h2>Option</h2>
-            <div className="input-group">
-              <label>Strike Price</label>
-              <input
-                onChange={handleInputChange(setStrikePrice)}
-                type="number"
-                ref={strikePriceRef}
-                value={strikePrice}
-              />
-              <label>Time to Expiry (in Days)</label>
-              <input
-                onChange={handleInputChange(setTimeToExp)}
-                type="number"
-                ref={timeToExpRef}
-                value={timeToExp}
-              />
-              <label>Number of Contracts</label>
-              <span>
-                <input
-                  onChange={handleInputChange(setContracts)}
-                  type="number"
-                  ref={contractsRef}
-                  value={contracts}
-                />
-                <>  X {CONTRACT_MULTIPLIER}</>
-              </span>
-            </div>
+
+              {(optionType === 'Call' || optionType === 'Put') ? 
+              <BasicInputs
+                strikePrice={strikePrices[0]}
+                timeToExp={timeToExp}
+                contracts={contracts}
+                handleInputChange={(name) => (e) => handleInputChange(name, 0)(e)}
+                strikePriceRef={strikePriceRef}
+                timeToExpRef={timeToExpRef}
+                contractsRef={contractsRef}
+                CONTRACT_MULTIPLIER={CONTRACT_MULTIPLIER}
+              /> : <SpreadInputs
+              strikePrices={strikePrices}
+              timeToExp={timeToExp}
+              contracts={contracts}
+              handleInputChange={(name) => (e) => handleInputChange(name, 0)(e)}
+              handleInputChange1={(name) => (e) => handleInputChange(name, 1)(e)}
+              strikePriceRef={strikePriceRef}
+              timeToExpRef={timeToExpRef}
+              contractsRef={contractsRef}
+              CONTRACT_MULTIPLIER={CONTRACT_MULTIPLIER}
+              />}              
+
             <div className="input-group">
               <span>
               <label>Use custom volatility</label>
@@ -200,12 +255,12 @@ function OptionForm() {
           </span>
           <br></br>
           <p>Your position is currently:</p>
-          <p>
+          {/* <p>
               {optionType === 'Call' 
                   ? (currentPrice > strikePrice ? 'In the Money' : 'Out of the Money')
                   : (currentPrice < strikePrice ? 'In the Money' : 'Out of the Money')
               }
-          </p>
+          </p> */}
           </div>
         <div className="output-group">
           <p class="bold-text">Breakdown:</p>
