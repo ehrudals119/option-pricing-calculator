@@ -2,9 +2,7 @@ import React, { useState, useRef } from 'react';
 import Button from './shared/Button';
 import { calculation } from './Calculation';
 import { TabGroup } from './OptionTabs';
-
-import BasicInputs from './BasicInput'
-import SpreadInputs from './SpreadInput';
+import OptionInput from './OptionInput';
 
 const BASE_URL_VOL = "http://localhost:4000/volatility?ticker=";
 const BASE_URL_PRICE = "http://localhost:4000/price?ticker=";
@@ -13,10 +11,13 @@ const CONTRACT_MULTIPLIER = 100;
 
 function OptionForm() {
   // State variables
-  const [optionType, setOptionType] = useState('Call');
+  const [strategyType, setStrategyType] = useState('');
+  const [legs, setLegs] = useState(1);
+  const [optionTypes, setOptionTypes] = useState(['','','','']);
+  const [positionTypes, setPositionTypes] = useState(['','','','']);
+  const [strikePrices, setStrikePrices] = useState(['','','','']);
   const [stockSymbol, setStockSymbol] = useState('');
   const [currentPrice, setCurrentPrice] = useState('');
-  const [strikePrices, setStrikePrices] = useState(['', '']);
   const [timeToExp, setTimeToExp] = useState(1);
   const [contracts, setContracts] = useState(1);
   const [volatility, setVolatility] = useState(10);
@@ -61,8 +62,50 @@ function OptionForm() {
     }
   };
 
-  const handleActiveChange = (activeType) => {
-    setOptionType(activeType);
+  const handleActiveChange = (strat) => {
+      setStrategyType(strat);
+      let updatedLegs = 1;
+      let updatedOptionTypes = ['','','',''];
+      let updatedPositionTypes = ['','','',''];
+
+      switch(strat) {
+          case "Call":
+              updatedLegs = 1;
+              updatedOptionTypes = ['Call','','',''];
+              updatedPositionTypes = ['Long','','',''];
+              break;
+          case "Put":
+              updatedLegs = 1;
+              updatedOptionTypes = ['Put','','',''];
+              updatedPositionTypes = ['Long','','',''];
+              break;
+          case "Call Spread":
+              updatedLegs = 2;
+              updatedOptionTypes = ['Call','Call','',''];
+              updatedPositionTypes = ['Long','Short','',''];
+              break;
+          case "Put Spread":
+              updatedLegs = 2;
+              updatedOptionTypes = ['Put','Put','',''];
+              updatedPositionTypes = ['Long','Short','',''];
+              break;
+          case "Strangle/Straddle":
+              updatedLegs = 2;
+              updatedOptionTypes = ['Put','Call','',''];
+              updatedPositionTypes = ['Long','Long','',''];
+              break;
+          case "Iron Condor/Butterfly":
+              updatedLegs = 4;
+              updatedOptionTypes = ['Put','Put','Call','Call'];
+              updatedPositionTypes = ['Long','Short','Long','Short'];
+              break;
+          default:
+              break;
+      }
+
+      setLegs(updatedLegs);
+      setOptionTypes(updatedOptionTypes);
+      setPositionTypes(updatedPositionTypes);
   };
 
   const getCurrentPrice = async e => {
@@ -104,58 +147,64 @@ function OptionForm() {
       }
     }
 
-    if(optionType === 'Call' || optionType === 'Put'){
+    var totalPremium = 0;
+
+    for(let i = 0; i < legs; i++){
       const premium = calculation(
         currentPrice,
-        strikePrices[0],
+        strikePrices[i],
         timeToExp,
-        optionType === 'Put',
+        optionTypes[i] === 'Put',
         usedVolatility / 100
       ) * contracts * CONTRACT_MULTIPLIER;
-  
-      resultRef.current.innerText = "$" + (Math.round(premium * CONTRACT_MULTIPLIER) / 100);
+
+      totalPremium += premium * (positionTypes[i] === "Short" ? -1 : 1);
     }
 
-    else{
+    resultRef.current.innerText = "$" + (Math.round(totalPremium * CONTRACT_MULTIPLIER) / 100);
 
-      const longPrem = calculation(
-        currentPrice,
-        strikePrices[0],
-        timeToExp,
-        optionType === 'Put Spread' ? true : false,
-        usedVolatility / 100
-      ) * contracts * CONTRACT_MULTIPLIER;
-
-      const shortPrem = calculation(
-        currentPrice,
-        strikePrices[1],
-        timeToExp,
-        optionType === 'Put Spread' ? true : false,
-        usedVolatility / 100
-      ) * contracts * CONTRACT_MULTIPLIER;
-
-      console.log(longPrem);
-      console.log(shortPrem);
-
-      const prem = longPrem - shortPrem;
-  
-      resultRef.current.innerText = "$" + (Math.round(prem * CONTRACT_MULTIPLIER) / 100);
-      
-    }
     setExplanation(summarize(Number(timeToExpRef.current.value)));
   };
 
-const summarize = (expiryDays) => {
-  const baseStr = "Your current position gives you the right to ";
-  let infoStr;
-  if (optionType === "Call Spread" || optionType === "Put Spread") {
-    infoStr = `${optionType === "Call Spread" ? "buy" : "sell"} ${contracts * CONTRACT_MULTIPLIER} shares of ${stockSymbol} stock at $${strikePrices[0]} and `;
-    infoStr += `${optionType === "Call Spread" ? "sell" : "buy"} ${contracts * CONTRACT_MULTIPLIER} shares of ${stockSymbol} stock at $${strikePrices[1]} on ${getExpiryDate(expiryDays)}`;
-  } else {
-    infoStr = `${optionType === "Call" ? "buy" : "sell"} ${contracts * CONTRACT_MULTIPLIER} shares of ${stockSymbol} stock at $${strikePrices[0]} on ${getExpiryDate(expiryDays)}`;
-  }
-  return baseStr + infoStr;
-};
+  const summarize = (expiryDays) => {
+    const baseStr = "Your current position gives you the right to ";
+    let infoStr = ""; 
+
+    var haveShort = false;
+  
+    for(let i = 0; i < legs; i++){
+      console.log(`Pos: ${positionTypes[i]}`);
+      if(positionTypes[i] === 'Long'){
+        if(i === legs - 1){
+          infoStr += `${optionTypes[i] === "Put" ? 'sell' : 'buy'} ${contracts * CONTRACT_MULTIPLIER} shares of ${stockSymbol} stock at $${strikePrices[i]} `;
+        }
+        else{
+          infoStr += `${optionTypes[i] === "Put" ? 'sell' : 'buy'} ${contracts * CONTRACT_MULTIPLIER} shares of ${stockSymbol} stock at $${strikePrices[i]}, `;
+        }
+      }
+      else{
+        haveShort = true;
+      }
+    }
+
+    if(haveShort){
+      infoStr += "and obligates you to "
+      for(let i = 0; i < legs; i++){
+        if(positionTypes[i] === 'Short'){
+          if(i === legs - 1){
+            infoStr += `${optionTypes[i] === "Put" ? 'sell' : 'buy'} ${contracts * CONTRACT_MULTIPLIER} shares of ${stockSymbol} stock at $${strikePrices[i]} `;
+          }
+          else{
+            infoStr += `${optionTypes[i] === "Put" ? 'sell' : 'buy'} ${contracts * CONTRACT_MULTIPLIER} shares of ${stockSymbol} stock at $${strikePrices[i]}, `;
+          }
+        }
+      }
+    }
+  
+    infoStr += `on ${getExpiryDate(expiryDays)}`;
+  
+    return baseStr + infoStr;
+  };
 
   const getExpiryDate = (days) => {
     var today = new Date();
@@ -197,27 +246,24 @@ const summarize = (expiryDays) => {
               />
             </div>
 
-              {(optionType === 'Call' || optionType === 'Put') ? 
-              <BasicInputs
-                strikePrice={strikePrices[0]}
-                timeToExp={timeToExp}
-                contracts={contracts}
-                handleInputChange={(name) => (e) => handleInputChange(name, 0)(e)}
-                strikePriceRef={strikePriceRef}
-                timeToExpRef={timeToExpRef}
-                contractsRef={contractsRef}
-                CONTRACT_MULTIPLIER={CONTRACT_MULTIPLIER}
-              /> : <SpreadInputs
-              strikePrices={strikePrices}
-              timeToExp={timeToExp}
-              contracts={contracts}
-              handleInputChange={(name) => (e) => handleInputChange(name, 0)(e)}
-              handleInputChange1={(name) => (e) => handleInputChange(name, 1)(e)}
-              strikePriceRef={strikePriceRef}
-              timeToExpRef={timeToExpRef}
-              contractsRef={contractsRef}
-              CONTRACT_MULTIPLIER={CONTRACT_MULTIPLIER}
-              />}              
+            {
+              legs > 0 &&
+              Array.from({ length: legs }, (_, i) => (
+                <OptionInput
+                  key={i}
+                  name={positionTypes[i] + " " + optionTypes[i]}
+                  strikePrice={strikePrices[i]}
+                  timeToExp={timeToExp}
+                  contracts={contracts}
+                  handleInputChange={(name) => (e) => handleInputChange(name, i)(e)}
+                  index={i}
+                  strikePriceRef={strikePriceRef}
+                  timeToExpRef={timeToExpRef}
+                  contractsRef={contractsRef}
+                  CONTRACT_MULTIPLIER={CONTRACT_MULTIPLIER}
+                />
+              ))
+            }
 
             <div className="input-group">
               <span>
