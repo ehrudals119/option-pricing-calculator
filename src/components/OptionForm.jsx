@@ -3,6 +3,8 @@ import Button from './shared/Button';
 import { calculation } from './Calculation';
 import { TabGroup } from './OptionTabs';
 import OptionInput from './OptionInput';
+import CustomInput from './CustomInput';
+
 
 const BASE_URL_VOL = "http://localhost:4000/volatility?ticker=";
 const BASE_URL_PRICE = "http://localhost:4000/price?ticker=";
@@ -62,6 +64,20 @@ function OptionForm() {
     }
   };
 
+  const handlePositionTypeChange = (index) => (e) => {
+    const value = e.target.value;
+    const updatedPositionTypes = [...positionTypes];
+    updatedPositionTypes[index] = value;
+    setPositionTypes(updatedPositionTypes);
+  };
+  
+  const handleOptionTypeChange = (index) => (e) => {
+    const value = e.target.value;
+    const updatedOptionTypes = [...optionTypes];
+    updatedOptionTypes[index] = value;
+    setOptionTypes(updatedOptionTypes);
+  };
+
   const handleActiveChange = (strat) => {
       setStrategyType(strat);
       let updatedLegs = 1;
@@ -98,6 +114,11 @@ function OptionForm() {
               updatedLegs = 4;
               updatedOptionTypes = ['Put','Put','Call','Call'];
               updatedPositionTypes = ['Long','Short','Long','Short'];
+              break;
+          case "Custom":
+              updatedLegs = 4;
+              updatedOptionTypes = ['Call','Call','Call','Call'];
+              updatedPositionTypes = ['Long','Long','Long','Long'];
               break;
           default:
               break;
@@ -173,7 +194,6 @@ function OptionForm() {
     var haveShort = false;
   
     for(let i = 0; i < legs; i++){
-      console.log(`Pos: ${positionTypes[i]}`);
       if(positionTypes[i] === 'Long'){
         if(i === legs - 1){
           infoStr += `${optionTypes[i] === "Put" ? 'sell' : 'buy'} ${contracts * CONTRACT_MULTIPLIER} shares of ${stockSymbol} stock at $${strikePrices[i]} `;
@@ -247,7 +267,7 @@ function OptionForm() {
             </div>
 
             {
-              legs > 0 &&
+              legs > 0 && strategyType !== 'Custom' ?
               Array.from({ length: legs }, (_, i) => (
                 <OptionInput
                   key={i}
@@ -261,6 +281,24 @@ function OptionForm() {
                   timeToExpRef={timeToExpRef}
                   contractsRef={contractsRef}
                   CONTRACT_MULTIPLIER={CONTRACT_MULTIPLIER}
+                />
+              )) : 
+              Array.from({ length: legs }, (_, i) => (
+                <CustomInput
+                  key={i}
+                  positionType = {positionTypes[i]}
+                  optionType = {optionTypes[i]}
+                  strikePrice={strikePrices[i]}
+                  timeToExp={timeToExp}
+                  contracts={contracts}
+                  handleInputChange={(name) => (e) => handleInputChange(name, i)(e)}
+                  index={i}
+                  strikePriceRef={strikePriceRef}
+                  timeToExpRef={timeToExpRef}
+                  contractsRef={contractsRef}
+                  CONTRACT_MULTIPLIER={CONTRACT_MULTIPLIER}
+                  handlePositionTypeChange = {(e) => handlePositionTypeChange(i)(e)}
+                  handleOptionTypeChange = { (e) => handleOptionTypeChange(i)(e)}
                 />
               ))
             }
