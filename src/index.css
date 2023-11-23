@@ -154,6 +154,27 @@ header {
   margin: 35px -20px 0px -75px;
 }
 
+.graph {
+  width: 150%;
+  height: 25%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #ccc;
+  padding: 12px 10px;
+  border-radius: 8px;
+  margin: 35px -20px 0px -120px;
+}
+
+
+.output-edit {
+  width: 120%;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 10px;
+  border-radius: 8px;
+  margin: 35px -20px 0px -75px;
+}
+
 
 .input-symbol {
   width: 50%;
@@ -165,6 +186,15 @@ header {
 }
 
 input {
+  width: 25%;
+  border-radius: 5px;
+  justify-content: flex-end;
+  border: none;
+  font-size: 18px;
+  font-family: Arial;
+}
+
+option {
   width: 25%;
   border-radius: 5px;
   justify-content: flex-end;
@@ -221,6 +251,29 @@ input:focus {
 .btn-secondary {
   background: #ff6a95;
 }
+
+.btn-add {
+  background: green;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  margin-left: -5px;
+  width: 100px;
+  height: 30px;
+  cursor: pointer;
+}
+
+.btn-delete {
+  background: red;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  margin-left: 5px;
+  margin-right: 10px;
+  width: 100px;
+  height: 30px;
+  cursor: pointer;
+}
+
+
 
 .btn:hover {
   transform: scale(0.98);

@@ -1,4 +1,15 @@
 import React from 'react';
+import styled from 'styled-components';
+
+const Select = styled.select`
+  margin: 5px 5px 5px 0px;
+  border-radius: 5px;
+  justify-content: flex-end;
+  border: none;
+  font-size: 18px;
+  font-family: Arial;
+  background-color: WhiteSmoke; 
+`;
 
 const CustomInput = ({
     positionType,
@@ -16,14 +27,14 @@ const CustomInput = ({
   }) => {
     return (
       <>
-        <select value={positionType} onChange={handlePositionTypeChange}>
-          <option value="long">Long</option>
-          <option value="short">Short</option>
-        </select>
-        <select value={optionType} onChange={handleOptionTypeChange}>
-          <option value="call">Call</option>
-          <option value="put">Put</option>
-        </select>
+        <Select value={positionType} onChange={handlePositionTypeChange}>
+          <option value="Long">Long</option>
+          <option value="Short">Short</option>
+        </Select>
+        <Select value={optionType} onChange={handleOptionTypeChange}>
+          <option value="Call">Call</option>
+          <option value="Put">Put</option>
+        </Select>
         <div className="input-group">
           <label>Strike Price</label>
           <input

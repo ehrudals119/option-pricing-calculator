@@ -18,54 +18,72 @@ const Tab = styled.button`
   `}
 `;
 const ButtonGroup = styled.div`
-  display: inline-block;
-  border: 1;
+  display: flex;
+  align-content: flex-start;
+  flex-direction: row;
+  flex-wrap: wrap; /* Add flex-wrap property to wrap the tabs */
 `;
-const types = ['Call', 'Put', 'Call Spread', 'Put Spread', 'Strangle/Straddle', 'Iron Condor/Butterfly', 'Custom'];
 
+const types = {
+  Bullish: ['Call', 'Call Spread'],
+  Bearish: ['Put', 'Put Spread'],
+  Volatile: ['Strangle/Straddle'],
+  Sideways: ['Iron Condor/Butterfly'],
+  Custom: ['Custom'],
+};
 export function TabGroup({ onActiveChange }) {
-  const [active, setActive] = useState(types[0]);
+  const [active, setActive] = useState(types.Bullish[0]);
 
   const handleTabClick = (type) => {
     setActive(type);
     onActiveChange(type);
   };
 
-  const getSummary = (type) => {
+  const sentiment = ['Bullish', 'Bearish', 'Volatile', 'Sideways', 'Custom'];
+
+  const getSummary = (sentiment, type) => {
     if (type === 'Call') {
       return 'Buy a Call option when you expect the underlying stock price to rise.';
     } else if (type === 'Put') {
       return 'Buy a Put option when you expect the underlying stock price to fall.';
-    } else if (type === 'Call Spread'){
-      return 'Buy a call spread when you expect the underlying stock to fall or rise moderately. Purchasing a call with a lower strike price than the written call (short) provides a bullish strategy, and purchasing a call with a higher strike price than the written call provides a bearish strategy.';
-    } else if (type === 'Put Spread'){
-      return 'Buy a call spread when you expect the underlying stock to fall or rise moderately. Purchasing a put with a lower strike price than the written put (short) provides a bearish strategy, and purchasing a put with a higher strike price than the written put provides a bearish strategy.'
-    } else if (type === 'Strangle/Straddle'){
-      return 'A strangle or straddle involves buying a call and put. It is a strategy suited to a volatile market.'
-    } else if (type === 'Iron Condor/Butterfly'){
-      return 'An iron condor or Buttefly is a four-legged strategy that provides a profit plateau between the two inner legs. It is a strategy suited to a stable market.'
-    }
-    else{
+    } else if (type === 'Call Spread') {
+      return sentiment === 'Bullish'
+        ? 'Summary for Bullish Call Spread'
+        : 'Summary for Bearish Call Spread';
+    } else if (type === 'Put Spread') {
+      return sentiment === 'Bullish'
+        ? 'Summary for Bearish Put Spread'
+        : 'Summary for Bullish Put Spread';
+    } else if (type === 'Strangle/Straddle') {
+      return 'A strangle or straddle involves buying a call and put. It is a strategy suited to a volatile market.';
+    } else if (type === 'Iron Condor/Butterfly') {
+      return 'An iron condor or Butterfly is a four-legged strategy that provides a profit plateau between the two inner legs. It is a strategy suited to a stable market.';
+    } else {
       return '';
     }
-
   };
 
   return (
     <>
+      <h3>You expect the market to be..</h3>
       <ButtonGroup>
-        {types.map(type => (
-          <Tab
-            key={type}
-            active={active === type}
-            onClick={() => handleTabClick(type)}
-          >
-            {type}
-          </Tab>
+        {Object.keys(types).map((sentiment) => (
+          <div key={sentiment}>
+            <h3>{sentiment}</h3>
+            {types[sentiment].map((type) => (
+              <Tab
+                key={type}
+                active={active === type}
+                onClick={() => handleTabClick(type)}
+              >
+                {type}
+              </Tab>
+            ))}
+          </div>
         ))}
       </ButtonGroup>
       <p />
-      <p>{getSummary(active)}</p>
+      <p>{getSummary(active, sentiment)}</p>
     </>
   );
 }

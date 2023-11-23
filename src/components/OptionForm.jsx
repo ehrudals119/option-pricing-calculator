@@ -4,7 +4,12 @@ import { calculation } from './Calculation';
 import { TabGroup } from './OptionTabs';
 import OptionInput from './OptionInput';
 import CustomInput from './CustomInput';
+import ProfitDiagram from './ProfitDiagram';
 
+import { Chart, registerables} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+Chart.register(...registerables);
 
 const BASE_URL_VOL = "http://localhost:4000/volatility?ticker=";
 const BASE_URL_PRICE = "http://localhost:4000/price?ticker=";
@@ -24,6 +29,7 @@ function OptionForm() {
   const [contracts, setContracts] = useState(1);
   const [volatility, setVolatility] = useState(10);
   const [explanation, setExplanation] = useState('');
+  const [chartData, setChartData] = useState(null);
 
   const [useUserInputVol, setUseUserInputVol] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
@@ -78,6 +84,116 @@ function OptionForm() {
     setOptionTypes(updatedOptionTypes);
   };
 
+  const addLeg = async e =>  {
+    e.preventDefault();
+    if (legs < 4) {
+    console.log("Adding leg...");
+    const updatedLegs = legs + 1;
+    const updatedOptionTypes = [...optionTypes, ''];
+    const updatedPositionTypes = [...positionTypes, ''];
+    const updatedStrikePrices = [...strikePrices, ''];
+    setLegs(updatedLegs);
+    setOptionTypes(updatedOptionTypes);
+    setPositionTypes(updatedPositionTypes);
+    setStrikePrices(updatedStrikePrices);
+    }
+  };
+
+  const deleteLeg = async e => {
+    e.preventDefault();
+    if (legs > 1) {
+      const updatedLegs = legs - 1;
+      const updatedOptionTypes = optionTypes.slice(0, -1);
+      const updatedPositionTypes = positionTypes.slice(0, -1);
+      const updatedStrikePrices = strikePrices.slice(0, -1);
+      setLegs(updatedLegs);
+      setOptionTypes(updatedOptionTypes);
+      setPositionTypes(updatedPositionTypes);
+      setStrikePrices(updatedStrikePrices);
+    }
+  };  
+
+  const generateChartData = () => {
+
+    setChartData(null);
+
+    const data = {
+      labels: [],
+      datasets: [
+        {
+          label: positionTypes[0] + " " + optionTypes[0],
+          data: [],
+          borderColor: 'rgba(75,192,225,1)',
+          fill: false,
+        },
+        {
+          label: positionTypes[1] + " " + optionTypes[1],
+          data: [],
+          borderColor: 'rgba(75,192,225,1)',
+          fill: false,
+        },
+      ],
+    };
+
+    for(let i = 0; i < legs; i++){
+
+      const pivot = strikePrices[i];
+
+      let value = parseInt(pivot);
+
+      if(optionTypes[i] === "Call"){
+
+        for(let j = 0; j < 4; j++){
+          data.labels.push(value + 50 * j);
+        }
+
+        data.datasets[i].data.push(0,50,100,150);
+      }
+
+      else{
+        let val = value - 150;
+        for(let j = 0; j < 4; j++){
+          data.labels.push(val + j * 50);
+        }
+        data.datasets[i].data.push(150,100,50,0);
+      }
+
+    }
+
+    const options = {
+      plugins: {
+        datalabels: {
+          display: false,
+        },
+      },
+      annotation: {
+        annotations: [
+          {
+            type: 'line',
+            mode: 'vertical',
+            scaleID: 'x-axis-0',
+            value: currentPrice,
+            borderColor: 'rgba(0,255,0,1)',
+            borderWidth: 2,
+            label: {
+              content: 'Current Price',
+              enabled: true,
+              position: 'top',
+            },
+          },
+        ],
+      },
+    };
+  
+    setChartData({
+      ...data,
+      options: options,
+    });
+
+    setChartData(data);
+  };
+
+
   const handleActiveChange = (strat) => {
       setStrategyType(strat);
       let updatedLegs = 1;
@@ -116,7 +232,7 @@ function OptionForm() {
               updatedPositionTypes = ['Long','Short','Long','Short'];
               break;
           case "Custom":
-              updatedLegs = 4;
+              updatedLegs = 1;
               updatedOptionTypes = ['Call','Call','Call','Call'];
               updatedPositionTypes = ['Long','Long','Long','Long'];
               break;
@@ -185,6 +301,8 @@ function OptionForm() {
     resultRef.current.innerText = "$" + (Math.round(totalPremium * CONTRACT_MULTIPLIER) / 100);
 
     setExplanation(summarize(Number(timeToExpRef.current.value)));
+
+    generateChartData();
   };
 
   const summarize = (expiryDays) => {
@@ -236,6 +354,7 @@ function OptionForm() {
     <>
       {showAlert && <div className="alert">Time to expiry is less than 7 days!</div>}
       <TabGroup onActiveChange={handleActiveChange} />
+
       <div className='split'>
         <div className='split-left'>
           <h2>Underlying Stock</h2>
@@ -320,6 +439,7 @@ function OptionForm() {
                 </>
               )}
             </div>
+
             <Button type='submit' version='secondary'>
               Calculate!
             </Button>
@@ -327,6 +447,15 @@ function OptionForm() {
         </div>
         
         <div className="split-right">
+        <div className="graph">
+        {chartData && (
+            <Line
+              data={chartData}
+              options={{
+                
+              }}/>
+          )}
+        </div>
         <div className="output-group">
         <p class="bold-text">Your current position:</p>
           <span>
@@ -337,19 +466,33 @@ function OptionForm() {
           <span>
             <p>{(Math.round(volatility * 100) / 100) + "%"}</p>
           </span>
-          <br></br>
-          <p>Your position is currently:</p>
-          {/* <p>
-              {optionType === 'Call' 
-                  ? (currentPrice > strikePrice ? 'In the Money' : 'Out of the Money')
-                  : (currentPrice < strikePrice ? 'In the Money' : 'Out of the Money')
-              }
-          </p> */}
           </div>
         <div className="output-group">
           <p class="bold-text">Breakdown:</p>
           <p>{explanation === '' ? '' : explanation}</p>
         </div>
+        {strategyType === 'Custom' && (
+          <div className = "output-edit">
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div>
+              <form onSubmit={addLeg}>
+                <Button type="submit" version="add">
+                  Add
+                </Button>
+              </form>
+            </div>
+            <div>
+              <form onSubmit={deleteLeg}>
+                <Button type="submit" version="delete">
+                  Delete
+                </Button>
+              </form>
+            </div>
+          </div>
+          </div>
+        )}
+
+
       </div>
       </div>
     </>
