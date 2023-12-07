@@ -156,7 +156,7 @@ header {
 
 .graph {
   width: 150%;
-  height: 25%;
+  height: 40%;
   display: flex;
   flex-direction: column;
   border: 1px solid #ccc;

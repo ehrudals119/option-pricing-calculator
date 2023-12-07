@@ -7,7 +7,7 @@ import CustomInput from './CustomInput';
 import ProfitDiagram from './ProfitDiagram';
 
 import { Chart, registerables} from 'chart.js';
-import { Line } from 'react-chartjs-2';
+import { Line, Bar, Scatter } from 'react-chartjs-2';
 
 Chart.register(...registerables);
 
@@ -118,22 +118,28 @@ function OptionForm() {
     setChartData(null);
 
     const data = {
-      labels: [],
-      datasets: [
+      datasets : []
+    }
+
+    for(let i = 0; i < legs; i++){
+      data.datasets.push(
         {
-          label: positionTypes[0] + " " + optionTypes[0],
+          label: positionTypes[i] + " " + optionTypes[i],
           data: [],
-          borderColor: 'rgba(75,192,225,1)',
-          fill: false,
-        },
-        {
-          label: positionTypes[1] + " " + optionTypes[1],
-          data: [],
-          borderColor: 'rgba(75,192,225,1)',
-          fill: false,
-        },
-      ],
-    };
+          borderColor: optionTypes[i] === "Call" ? 'rgba(255,0,0,1)': 'rgba(75,192,225,1)' ,
+          fill: false,        
+          showLine: true,    
+      })
+    }
+
+    data.datasets.push(
+      {
+        label: "Current Stock Price",
+        data: [],
+        borderColor: 'rgba(75,192,0,1)' ,
+        fill: false,     
+        showLine: true,        
+    })
 
     for(let i = 0; i < legs; i++){
 
@@ -144,20 +150,22 @@ function OptionForm() {
       if(optionTypes[i] === "Call"){
 
         for(let j = 0; j < 4; j++){
-          data.labels.push(value + 50 * j);
+          data.datasets[i].data.push({x: value + j * 50, y: j * 50});
         }
-
-        data.datasets[i].data.push(0,50,100,150);
       }
 
       else{
-        let val = value - 150;
         for(let j = 0; j < 4; j++){
-          data.labels.push(val + j * 50);
+          if(value - j * 50 >= 0){
+            data.datasets[i].data.push({x: value - j * 50, y: j * 50});
+          }
         }
-        data.datasets[i].data.push(150,100,50,0);
       }
 
+    }
+
+    for(let x = 0; x < 4; x++){
+        data.datasets[data.datasets.length - 1].data.push({x: currentPrice, y: x * 50});
     }
 
     const options = {
@@ -448,12 +456,40 @@ function OptionForm() {
         
         <div className="split-right">
         <div className="graph">
-        {chartData && (
-            <Line
+          {chartData && (
+            <Scatter
               data={chartData}
-              options={{
-                
-              }}/>
+              options = {{
+                plugins: {
+                  title: {
+                    display: true,
+                    text: 'Option Profit Chart',
+                    color: 'white',
+                  },
+                  legend: {
+                    labels: {
+                      color: 'white', 
+                    },
+                  },
+                },
+                scales: {x: { title: { display: true, text: 'Stock Price' , color: 'white'},
+                ticks: {
+                  color: 'white', 
+                },        grid: {
+                  color: 'black', 
+                },},
+              y : { title: { display: true, text: 'Payoff (Per Contract)',  color: 'white', }, 
+              ticks: {
+                color: 'white', 
+              },
+              grid: {
+                color: 'black', 
+              },}
+              },
+              maintainAspectRatio: false, 
+              aspectRatio: 2, 
+              responsive: true, 
+            }}/>
           )}
         </div>
         <div className="output-group">
