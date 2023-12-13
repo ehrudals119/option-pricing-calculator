@@ -4,10 +4,9 @@ import { calculation } from './Calculation';
 import { TabGroup } from './OptionTabs';
 import OptionInput from './OptionInput';
 import CustomInput from './CustomInput';
-import ProfitDiagram from './ProfitDiagram';
 
 import { Chart, registerables} from 'chart.js';
-import { Line, Bar, Scatter } from 'react-chartjs-2';
+import { Scatter } from 'react-chartjs-2';
 
 Chart.register(...registerables);
 
